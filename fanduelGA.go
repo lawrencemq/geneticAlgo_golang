@@ -1,18 +1,19 @@
 package main
 
 import (
-	"github.com/deckarep/golang-set"
-	"io/ioutil"
 	"encoding/csv"
-	"strings"
-	"io"
-	"log"
-	"strconv"
-	"sort"
-	"time"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"lawrencemq/geneticalgo_golang/ga"
+	"log"
 	"math/rand"
-	"./ga"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
+	mapset "github.com/deckarep/golang-set"
 )
 
 const salaryCap = 60000
@@ -22,16 +23,17 @@ const filename = "FanDuel-NFL-2016-11-17-16937-players-list.csv"
 var qbs, rbs, wrs, tes, ds, ks []Player
 
 type Player struct {
-	position string
+	position  string
 	firstName string
-	lastName string
-	fppg float64
-	salary int
-	game string
-	team string
-	injured bool
+	lastName  string
+	fppg      float64
+	salary    int
+	game      string
+	team      string
+	injured   bool
 }
-func makePlayer(position, firstName, lastName string, ffpg float64, salary int, game, team string, injured bool) Player{
+
+func makePlayer(position, firstName, lastName string, ffpg float64, salary int, game, team string, injured bool) Player {
 	return Player{
 		position,
 		firstName,
@@ -47,8 +49,9 @@ func makePlayer(position, firstName, lastName string, ffpg float64, salary int, 
 type Lineup struct {
 	qb, rb1, rb2, wr1, wr2, wr3, te, def, k Player
 }
-func lineupToSlice(lineup Lineup) []Player{
-	return []Player {lineup.qb, lineup.rb1, lineup.rb2, lineup.wr1, lineup.wr2, lineup.wr3, lineup.te, lineup.def, lineup.k}
+
+func lineupToSlice(lineup Lineup) []Player {
+	return []Player{lineup.qb, lineup.rb1, lineup.rb2, lineup.wr1, lineup.wr2, lineup.wr3, lineup.te, lineup.def, lineup.k}
 }
 func sliceToLineup(players []Player) Lineup {
 	return Lineup{
@@ -63,7 +66,6 @@ func sliceToLineup(players []Player) Lineup {
 		players[8],
 	}
 }
-
 
 func makeFanduelEntry(qb, rb1, rb2, wr1, wr2, wr3, te, def, k Player) Lineup {
 	return Lineup{
@@ -81,7 +83,7 @@ func makeFanduelEntry(qb, rb1, rb2, wr1, wr2, wr3, te, def, k Player) Lineup {
 
 func generateFanduelEntry() Lineup {
 	var possibleEntry Lineup
-	for true {
+	for {
 		possibleEntry = makeFanduelEntry(
 			qbs[rand.Intn(len(qbs))],
 			rbs[rand.Intn(len(rbs))],
@@ -93,7 +95,7 @@ func generateFanduelEntry() Lineup {
 			ds[rand.Intn(len(ds))],
 			ks[rand.Intn(len(ks))],
 		)
-		if isValidFanduelEntry(possibleEntry){
+		if isValidFanduelEntry(possibleEntry) {
 			break
 		}
 	}
@@ -102,7 +104,7 @@ func generateFanduelEntry() Lineup {
 
 func getProjectedPointsForLineup(entry Lineup) float64 {
 	var total float64
-	for _, player := range lineupToSlice(entry){
+	for _, player := range lineupToSlice(entry) {
 		total += player.fppg
 	}
 	return total
@@ -110,17 +112,17 @@ func getProjectedPointsForLineup(entry Lineup) float64 {
 
 func entryHasValidNumPlayers(entry Lineup) bool {
 	playersSet := mapset.NewSet()
-	for _, player := range lineupToSlice(entry){
+	for _, player := range lineupToSlice(entry) {
 		playersSet.Add(player)
 	}
 	return len(playersSet.ToSlice()) == 9
 }
 
-func countTimeTeamSeen(entry Lineup, team string) int{
+func countTimeTeamSeen(entry Lineup, team string) int {
 	var count int
-	for _, player := range lineupToSlice(entry){
-		if player.team == team{
-			count ++
+	for _, player := range lineupToSlice(entry) {
+		if player.team == team {
+			count++
 		}
 	}
 	return count
@@ -128,14 +130,14 @@ func countTimeTeamSeen(entry Lineup, team string) int{
 
 func findMaxSameTeam(entry Lineup) int {
 	allTeamsSet := mapset.NewSet()
-	for _, player := range lineupToSlice(entry){
+	for _, player := range lineupToSlice(entry) {
 		allTeamsSet.Add(player.team)
 	}
 
 	var max int
 	for team := range allTeamsSet.Iterator().C {
 		timesSeen := countTimeTeamSeen(entry, team.(string))
-		if timesSeen > max{
+		if timesSeen > max {
 			max = timesSeen
 		}
 	}
@@ -146,7 +148,7 @@ func findMaxSameTeam(entry Lineup) int {
 
 func sumSalaryNeededForEntry(entry Lineup) int {
 	var totalSalary int
-	for _, player := range lineupToSlice(entry){
+	for _, player := range lineupToSlice(entry) {
 		totalSalary += player.salary
 	}
 	return totalSalary
@@ -158,11 +160,9 @@ func isValidFanduelEntry(entry Lineup) bool {
 		sumSalaryNeededForEntry(entry) < salaryCap
 }
 
-
-
-func readInData() ([]Player, []Player, []Player, []Player, []Player, []Player){
+func readInData() ([]Player, []Player, []Player, []Player, []Player, []Player) {
 	dat, err := ioutil.ReadFile(filename)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 
@@ -183,7 +183,7 @@ func readInData() ([]Player, []Player, []Player, []Player, []Player, []Player){
 		if err != nil {
 			log.Fatal(err)
 		}
-		if firstEntry{
+		if firstEntry {
 			firstEntry = false
 			continue
 		}
@@ -205,19 +205,26 @@ func readInData() ([]Player, []Player, []Player, []Player, []Player, []Player){
 		injured := record[11] != ""
 		newEntry := makePlayer(position, firstName, lastName, ffpg, salary, game, team, injured)
 
-		switch newEntry.position{
+	Position:
+		switch newEntry.position {
 		case "QB":
-			qbs = append(qbs, newEntry); break
+			qbs = append(qbs, newEntry)
+			break Position
 		case "RB":
-			rbs = append(rbs, newEntry); break
+			rbs = append(rbs, newEntry)
+			break Position
 		case "WR":
-			wrs = append(wrs, newEntry); break
+			wrs = append(wrs, newEntry)
+			break Position
 		case "TE":
-			tes = append(tes, newEntry); break
+			tes = append(tes, newEntry)
+			break Position
 		case "D":
-			ds = append(ds, newEntry); break
+			ds = append(ds, newEntry)
+			break Position
 		case "K":
-			ks = append(ks, newEntry); break
+			ks = append(ks, newEntry)
+			break Position
 		default:
 			panic("Can't figure out position!")
 		}
@@ -225,25 +232,21 @@ func readInData() ([]Player, []Player, []Player, []Player, []Player, []Player){
 	return qbs, rbs, wrs, tes, ds, ks
 }
 
-
-
 type FanDuelGA struct {
-
 }
 
-func (l FanDuelGA) GenerateInitialPopulation(populationSize int) []interface{}{
+func (l FanDuelGA) GenerateInitialPopulation(populationSize int) []Lineup {
 
-	initialPopulation := make([]interface{}, 0, populationSize)
-	for i:= 0; i < populationSize; i++ {
+	initialPopulation := make([]Lineup, 0, populationSize)
+	for i := 0; i < populationSize; i++ {
 		initialPopulation = append(initialPopulation, generateFanduelEntry())
 	}
 	return initialPopulation
 }
-func (l FanDuelGA) PerformCrossover(result1, result2 interface{}, crossoverRate int) interface{}{
-	entry1, entry2 := result1.(Lineup), result2.(Lineup)
-	players1, players2 := lineupToSlice(entry1), lineupToSlice(entry2)
+func (l FanDuelGA) PerformCrossover(result1, result2 Lineup, crossoverRate int) Lineup {
+	players1, players2 := lineupToSlice(result1), lineupToSlice(result2)
 
-	crossoverIndex := int(float64(len(players1))*(float64(crossoverRate)/100.0))
+	crossoverIndex := int(float64(len(players1)) * (float64(crossoverRate) / 100.0))
 	newEntrySlice1 := players1[:crossoverIndex]
 	newEntrySlice2 := players2[crossoverIndex:]
 	newEntryPlayers := append(newEntrySlice1, newEntrySlice2...)
@@ -270,50 +273,51 @@ func getRandomPlayerForPosition(position string) Player {
 	}
 }
 
-func (l FanDuelGA) PerformMutation(result interface{}, mutationRate int) interface{}{
-	entry := result.(Lineup)
-	players := lineupToSlice(entry)
+func (l FanDuelGA) PerformMutation(result Lineup, mutationRate int) Lineup {
+
+	players := lineupToSlice(result)
 	for index, player := range players {
-		if 100 - rand.Intn(100) < mutationRate {
-			for true {
-				finalPlayers := append(players[:index], getRandomPlayerForPosition(player.position))
-				finalPlayers = append(finalPlayers, players[index+1:]...)
-				lineup := sliceToLineup(finalPlayers)
-				//fmt.Println(lineup)
-				if !isValidFanduelEntry(lineup){
-					break
-				}
-				return lineup
+		if 100-rand.Intn(100) >= mutationRate {
+			continue
+		}
+
+		for {
+			finalPlayers := append(players[:index], getRandomPlayerForPosition(player.position))
+			finalPlayers = append(finalPlayers, players[index+1:]...)
+			lineup := sliceToLineup(finalPlayers)
+			//fmt.Println(lineup)
+			if !isValidFanduelEntry(lineup) {
+				break
 			}
+			return lineup
 		}
 	}
 	return sliceToLineup(players) // no mutation happened
 }
-func (l FanDuelGA) Sort(population []interface{}){
+func (l FanDuelGA) Sort(population []Lineup) {
 	sort.Slice(population, func(i, j int) bool {
-		return getProjectedPointsForLineup(population[i].(Lineup)) < getProjectedPointsForLineup(population[j].(Lineup))
+		return getProjectedPointsForLineup(population[i]) < getProjectedPointsForLineup(population[j])
 	})
 }
 
-func fanduelMain(){
+func fanduelMain() {
 	rand.Seed(time.Now().Unix())
 	qbs, rbs, wrs, tes, ds, ks = readInData()
 
 	settings := ga.GeneticAlgorithmSettings{
-		PopulationSize: 100,
-		MutationRate: 10,
-		CrossoverRate: 50,
-		NumGenerations: 25,
+		PopulationSize:           100,
+		MutationRate:             10,
+		CrossoverRate:            50,
+		NumGenerations:           25,
 		KeepBestAcrossPopulation: true,
 	}
 
-	best, err := ga.Run(FanDuelGA{}, settings)
+	best, err := ga.Run[Lineup](FanDuelGA{}, settings)
 	if err != nil {
 		println(err)
-	}else{
-		entry := best.(Lineup)
-		fmt.Printf("Best: %f:, $%d\n", getProjectedPointsForLineup(entry), sumSalaryNeededForEntry(entry))
-		for _, player := range lineupToSlice(entry) {
+	} else {
+		fmt.Printf("Best: %f:, $%d\n", getProjectedPointsForLineup(best), sumSalaryNeededForEntry(best))
+		for _, player := range lineupToSlice(best) {
 			fmt.Printf("%s: %s %s - %f\n", player.position, player.firstName, player.lastName, player.fppg)
 		}
 	}

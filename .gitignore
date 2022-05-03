@@ -62,3 +62,6 @@ fabric.properties
 
 main
 geneticAlgo_golang
+
+.vscode/
+.idea/

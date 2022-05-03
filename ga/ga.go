@@ -5,35 +5,30 @@ import (
 )
 
 type GeneticAlgorithmSettings struct {
-
 	PopulationSize           int
 	MutationRate             int
 	CrossoverRate            int
 	NumGenerations           int
 	KeepBestAcrossPopulation bool
-
 }
 
-type GeneticAlgorithmRunner interface {
-
-	GenerateInitialPopulation(populationSize int) []interface{}
-	PerformCrossover(individual1, individual2 interface{}, crossoverRate int) interface{}
-	PerformMutation(individual interface{}, mutationRate int) interface{}
-	Sort([]interface{})
-
+type GeneticAlgorithmRunner[K comparable] interface {
+	GenerateInitialPopulation(populationSize int) []K
+	PerformCrossover(individual1, individual2 K, crossoverRate int) K
+	PerformMutation(individual K, mutationRate int) K
+	Sort([]K)
 }
 
+func createStochasticProbableListOfIndividuals[K comparable](population []K) []K {
 
-func createStochasticProbableListOfIndividuals(population []interface{}) []interface{} {
-
-	totalCount, populationLength:= 0, len(population)
-	for j:= 0; j < populationLength; j++ {
+	totalCount, populationLength := 0, len(population)
+	for j := 0; j < populationLength; j++ {
 		totalCount += j
 	}
 
-	probableIndividuals := make([]interface{}, 0, totalCount)
+	probableIndividuals := make([]K, 0, totalCount)
 	for index, individual := range population {
-		for i:= 0; i < index; i++{
+		for i := 0; i < index; i++ {
 			probableIndividuals = append(probableIndividuals, individual)
 		}
 	}
@@ -41,18 +36,17 @@ func createStochasticProbableListOfIndividuals(population []interface{}) []inter
 	return probableIndividuals
 }
 
-
-func Run(geneticAlgoRunner GeneticAlgorithmRunner, settings GeneticAlgorithmSettings) (interface{}, error){
+func Run[K comparable](geneticAlgoRunner GeneticAlgorithmRunner[K], settings GeneticAlgorithmSettings) (K, error) {
 
 	population := geneticAlgoRunner.GenerateInitialPopulation(settings.PopulationSize)
 
 	geneticAlgoRunner.Sort(population)
 
-	bestSoFar := population[len(population) - 1]
+	bestSoFar := population[len(population)-1]
 
-	for i:= 0; i < settings.NumGenerations; i++ {
+	for i := 0; i < settings.NumGenerations; i++ {
 
-		newPopulation := make([]interface{}, 0, settings.PopulationSize)
+		newPopulation := make([]K, 0, settings.PopulationSize)
 
 		if settings.KeepBestAcrossPopulation {
 			newPopulation = append(newPopulation, bestSoFar)
@@ -62,7 +56,7 @@ func Run(geneticAlgoRunner GeneticAlgorithmRunner, settings GeneticAlgorithmSett
 		probabilisticListOfPerformers := createStochasticProbableListOfIndividuals(population)
 
 		newPopIndex := 0
-		if settings.KeepBestAcrossPopulation{
+		if settings.KeepBestAcrossPopulation {
 			newPopIndex = 1
 		}
 		for ; newPopIndex < settings.PopulationSize; newPopIndex++ {
@@ -88,7 +82,7 @@ func Run(geneticAlgoRunner GeneticAlgorithmRunner, settings GeneticAlgorithmSett
 		geneticAlgoRunner.Sort(population)
 
 		// keep the best so far
-		bestSoFar = population[len(population) - 1]
+		bestSoFar = population[len(population)-1]
 
 	}
 
